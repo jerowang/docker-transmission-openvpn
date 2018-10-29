@@ -1,40 +1,24 @@
-FROM ubuntu:16.04
-MAINTAINER Kristian Haugene
+FROM alpine:3.8
+# MAINTAINER Kristian Haugene
 
 VOLUME /data
 VOLUME /config
 
-# Update packages and install software
-RUN apt-get update \
-    && apt-get -y upgrade \
-    && apt-get -y install software-properties-common wget git curl jq \
-    && add-apt-repository ppa:transmissionbt/ppa \
-    && wget -O - https://swupdate.openvpn.net/repos/repo-public.gpg | apt-key add - \
-    && echo "deb http://build.openvpn.net/debian/openvpn/stable xenial main" > /etc/apt/sources.list.d/openvpn-aptrepo.list \
-    && apt-get update \
-    && apt-get install -y sudo transmission-cli transmission-common transmission-daemon curl rar unrar zip unzip ufw iputils-ping openvpn bc\
-    python2.7 python2.7-pysqlite2 && ln -sf /usr/bin/python2.7 /usr/bin/python2 \
-    && wget https://github.com/Secretmapper/combustion/archive/release.zip \
-    && unzip release.zip -d /opt/transmission-ui/ \
-    && rm release.zip \
-    && wget https://github.com/ronggang/twc-release/raw/master/src.tar.gz \
-    && mkdir /opt/transmission-ui/transmission-web-control \
-    && tar -xvf src.tar.gz -C /opt/transmission-ui/transmission-web-control/ \
-    && rm src.tar.gz \
-    && git clone git://github.com/endor/kettu.git /opt/transmission-ui/kettu \
-    && apt-get install -y tinyproxy telnet \
-    && wget https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.2.0_amd64.deb \
-    && dpkg -i dumb-init_1.2.0_amd64.deb \
-    && rm -rf dumb-init_1.2.0_amd64.deb \
-    && curl -L https://github.com/jwilder/dockerize/releases/download/v0.5.0/dockerize-linux-amd64-v0.5.0.tar.gz | tar -C /usr/local/bin -xzv \
-    && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
+ENV DOCKERIZE_VERSION=v0.6.0
+RUN echo "@testing http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories \
+    && apk --no-cache add bash dumb-init ip6tables ufw@testing openvpn shadow transmission-daemon curl jq \
+    && echo "Install dockerize $DOCKERIZE_VERSION" \
+    && wget -qO- https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz | tar xz -C /usr/bin \
+    && mkdir -p /opt/transmission-ui \
+    && echo "Install Combustion" \
+    && wget -qO- https://github.com/Secretmapper/combustion/archive/release.tar.gz | tar xz -C /opt/transmission-ui \
+    && rm -rf /tmp/* /var/tmp/* \
     && groupmod -g 1000 users \
     && useradd -u 911 -U -d /config -s /bin/false abc \
     && usermod -G users abc
 
 ADD openvpn/ /etc/openvpn/
 ADD transmission/ /etc/transmission/
-ADD tinyproxy /opt/tinyproxy/
 
 ENV OPENVPN_USERNAME=**None** \
     OPENVPN_PASSWORD=**None** \
@@ -129,5 +113,4 @@ ENV OPENVPN_USERNAME=**None** \
 
 # Expose port and run
 EXPOSE 9091
-EXPOSE 8888
 CMD ["dumb-init", "/etc/openvpn/start.sh"]
