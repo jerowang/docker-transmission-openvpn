@@ -3,6 +3,7 @@ FROM alpine:3.8
 
 VOLUME /data
 VOLUME /config
+VOLUME /incomplete
 
 ENV DOCKERIZE_VERSION=v0.6.0
 RUN echo "@testing http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories \
